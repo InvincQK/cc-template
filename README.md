@@ -92,12 +92,15 @@ Ví dụ thực tế cho feature "quản lý đơn hàng":
 ```
 .
 ├── .claude/
-│   ├── commands/               # 3 slash command chính
+│   ├── commands/               # 4 slash command chính
 │   │   ├── rsd-to-pttk.md
 │   │   ├── pttk-to-plan.md
-│   │   └── implement-task.md
+│   │   ├── implement-task.md
+│   │   └── sync-pttk-template.md
 │   ├── output-templates/       # ACTIVE template: command đọc & gen theo
-│   │   └── pttk.md             # User customize file này cho từng project
+│   │   ├── source/             # Word file PTTK (source of truth)
+│   │   │   └── pttk.docx       # User đặt file Word vào đây
+│   │   └── pttk.md             # Auto-gen từ docx, /rsd-to-pttk đọc
 │   └── settings.json           # Permissions: allow / deny / ask
 │
 ├── docs/                       # Output của workflow, commit chung với code
@@ -129,14 +132,31 @@ Giải thích:
 | **Ảnh hưởng khi sửa** | Thay đổi NGAY output mà command sinh ra | Không ảnh hưởng command, chỉ thay sample |
 | **Khi nào dùng?** | Mỗi project bootstrap → customize cho convention team | Khi muốn viết tay PTTK / cần xem mẫu chi tiết |
 
-**Workflow customize active template** (làm 1 lần cho mỗi project):
+**Workflow customize active template** — có 2 cách:
+
+**Cách A — Sửa markdown trực tiếp** (dev quen markdown):
 
 1. Mở `.claude/output-templates/pttk.md`
 2. Thêm/bớt section, đổi cột bảng, đổi loại diagram theo team
-   - Ví dụ team fintech: thêm section "Threat Model" và "Compliance Mapping"
-   - Ví dụ team API-heavy: thêm cột "Rate limit", "Auth required" vào bảng API
-3. Commit → từ lần chạy `/rsd-to-pttk` tiếp theo, mọi PTTK sẽ theo cấu trúc mới
-4. Nếu xoá file → command rơi về cấu trúc fallback mặc định (vẫn chạy được)
+3. Commit → từ lần chạy `/rsd-to-pttk` tiếp theo, mọi PTTK theo cấu trúc mới
+4. Nếu xoá file → command rơi về cấu trúc fallback mặc định
+
+**Cách B — Sửa Word, sync ra markdown** (khi team có template chuẩn bằng .docx):
+
+```
+.claude/output-templates/source/pttk.docx   ← Sửa file Word ở đây
+              ↓ /sync-pttk-template
+.claude/output-templates/pttk.md            ← Auto-gen, /rsd-to-pttk dùng
+```
+
+1. Đặt file Word vào `.claude/output-templates/source/pttk.docx`
+2. Chạy `/sync-pttk-template` (cần [pandoc](https://pandoc.org/installing.html) cài sẵn)
+3. Command convert .docx → markdown, refine thành active template, ghi đè `pttk.md`
+4. KHÔNG sửa `pttk.md` trực tiếp khi dùng cách B — sẽ bị ghi đè lần sync sau
+
+Ví dụ customize theo team:
+- Team fintech: thêm section "Threat Model" và "Compliance Mapping"
+- Team API-heavy: thêm cột "Rate limit", "Auth required" vào bảng API
 
 ---
 
