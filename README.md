@@ -61,28 +61,32 @@ Sau khi bootstrap, làm 2 việc ngay:
 
 ## 4. Workflow tổng quan
 
+**Path A — Từ Word RSD (khuyến khích):**
 ```
-┌──────────┐   /rsd-to-pttk   ┌──────────┐   /pttk-to-plan   ┌──────────────┐   /implement-task   ┌──────────┐
-│ RSD file │  ───────────────►│ PTTK file│  ────────────────►│ Plan file    │  ──────────────────►│ Code +   │
-│ (.md)    │                  │ (.md)    │                   │ (.md, có task│                     │ Plan đã  │
-│          │                  │          │                   │ list)        │                     │ update   │
-└──────────┘                  └──────────┘                   └──────────────┘                     └──────────┘
-     ▲                              ▲                               ▲                                    │
-     │                              │                               │                                    │
-     └──── docs/rsd/ ────────────── docs/pttk/ ────────────────── docs/implementation-plan/ ◄────────────┘
+.docx (Word)          rsd.md              pttk.md             plan.md
+    │                    │                   │                   │
+    ▼ /sync-rsd-template ▼ /rsd-to-pttk     ▼ /pttk-to-plan    ▼ /implement-task
+.docx ──────────► .md ──────────► .md ──────────► .md ──────────► Code+
 ```
 
-Ví dụ thực tế cho feature "quản lý đơn hàng":
+**Path B — Viết tay RSD (fallback):**
+```
+Write manually ──► docs/rsd/<feature>-rsd.md ──► ... (từ /rsd-to-pttk trở đi)
+```
+
+Ví dụ thực tế cho feature "quản lý đơn hàng" dùng Word:
 
 ```text
-1. Viết tay:    docs/rsd/order-management-rsd.md     (dùng templates/rsd-template.md)
-2. Chạy:        /rsd-to-pttk docs/rsd/order-management-rsd.md
-                → sinh docs/pttk/order-management-pttk.md
-3. Chạy:        /pttk-to-plan docs/pttk/order-management-pttk.md
-                → sinh docs/implementation-plan/order-management-plan.md
-4. Chạy:        /implement-task order-management TASK-001
-                → code + test + update plan
-5. Lặp lại:     /implement-task order-management TASK-002, TASK-003, ...
+1. BA viết Word:        .claude/output-templates/source/rsd.docx
+2. Chạy:                /sync-rsd-template order-management
+                        → sinh docs/rsd/order-management-rsd.md
+3. Chạy:                /rsd-to-pttk docs/rsd/order-management-rsd.md
+                        → sinh docs/pttk/order-management-pttk.md
+4. Chạy:                /pttk-to-plan docs/pttk/order-management-pttk.md
+                        → sinh docs/implementation-plan/order-management-plan.md
+5. Chạy:                /implement-task order-management TASK-001
+                        → code + test + update plan
+6. Lặp lại:             /implement-task order-management TASK-002, TASK-003, ...
 ```
 
 ---
@@ -92,15 +96,18 @@ Ví dụ thực tế cho feature "quản lý đơn hàng":
 ```
 .
 ├── .claude/
-│   ├── commands/               # 4 slash command chính
+│   ├── commands/               # 5 slash command chính
+│   │   ├── sync-rsd-template.md
 │   │   ├── rsd-to-pttk.md
 │   │   ├── pttk-to-plan.md
 │   │   ├── implement-task.md
 │   │   └── sync-pttk-template.md
 │   ├── output-templates/       # ACTIVE template: command đọc & gen theo
-│   │   ├── source/             # Word file PTTK (source of truth)
-│   │   │   └── pttk.docx       # User đặt file Word vào đây
-│   │   └── pttk.md             # Auto-gen từ docx, /rsd-to-pttk đọc
+│   │   ├── source/             # Raw files (Word, v.v.)
+│   │   │   ├── rsd.docx        # BA đặt Word RSD vào đây
+│   │   │   └── pttk.docx       # User đặt Word PTTK vào đây
+│   │   ├── pttk.md             # Auto-gen từ pttk.docx, /rsd-to-pttk đọc
+│   │   └── ...
 │   └── settings.json           # Permissions: allow / deny / ask
 │
 ├── docs/                       # Output của workflow, commit chung với code
@@ -108,33 +115,64 @@ Ví dụ thực tế cho feature "quản lý đơn hàng":
 │   ├── pttk/                   # Phân tích thiết kế (Claude sinh, người review)
 │   └── implementation-plan/    # Task lists (Claude sinh, Claude cập nhật khi code)
 │
-├── templates/                  # GENERIC samples: tham khảo / copy-paste tay
-│   ├── rsd-template.md
-│   ├── pttk-template.md
-│   └── implementation-plan-template.md
+├── templates/                  # Starter cho file viết tay (không có command gen)
+│   └── rsd-template.md         # Copy-paste khi viết RSD mới
 │
 ├── README.md                   # File này
 └── .gitignore
 ```
 
-Giải thích:
+Giải thích từng thư mục:
 
-- **`.claude/`**: commit vào repo để cả team dùng chung. KHÔNG ignore. Phần cá nhân để ở `.claude/settings.local.json` (đã được ignore mặc định).
-- **`docs/`**: mọi tài liệu sinh ra trong workflow đều ở đây để cùng versioning với code.
-- **`.claude/output-templates/`** vs **`templates/`** — hai loại template khác mục đích, đừng nhầm (xem mục 5.1).
+- **`.claude/commands/`**: 5 slash command. Commit vào repo để cả team dùng chung.
+  - `sync-rsd-template.md`: convert Word RSD → markdown RSD
+  - `rsd-to-pttk.md`: phân tích RSD → PTTK
+  - `pttk-to-plan.md`: từ PTTK → plan tasks
+  - `implement-task.md`: implement từng task
+  - `sync-pttk-template.md`: convert Word PTTK → markdown PTTK
+- **`.claude/output-templates/`**: **ACTIVE template** + Raw files — slash command đọc khi sinh output. Customize per-project.
+  - `pttk.md`: cấu trúc output của `/rsd-to-pttk`. Sửa trực tiếp HOẶC sync từ Word.
+  - `source/`: folder chứa raw files (Word) từ user. Slash command đọc từ đây rồi convert sang markdown.
+    - `source/rsd.docx`: BA đặt Word RSD vào đây, `/sync-rsd-template` convert → `docs/rsd/<feature>-rsd.md`
+    - `source/pttk.docx`: user đặt Word PTTK vào đây, `/sync-pttk-template` convert → `pttk.md` (active template)
+- **`docs/`**: tài liệu sinh ra trong workflow (RSD, PTTK, plan), commit cùng code.
+  - `docs/rsd/`: RSD files (`<feature>-rsd.md`) — từ `/sync-rsd-template` hoặc viết tay
+  - `docs/pttk/`: PTTK files (`<feature>-pttk.md`) — sinh từ `/rsd-to-pttk`
+  - `docs/implementation-plan/`: Plan files (`<feature>-plan.md`) — sinh từ `/pttk-to-plan`
+- **`templates/`**: starter cho file viết tay. Chỉ chứa `rsd-template.md` — guide để BA viết RSD tay nếu không dùng Word.
+- **`.claude/settings.json`**: permissions allow/deny/ask. Phần cá nhân để ở `.claude/settings.local.json` (đã ignore mặc định).
 
-### 5.1 Phân biệt `.claude/output-templates/` vs `templates/`
+### 5.1 RSD workflow — Tay viết vs. Word convert
 
-| | `.claude/output-templates/` | `templates/` |
-|--|--|--|
-| **Vai trò** | **Active** — slash command đọc & sinh output theo file này | **Generic samples** — để người đọc / copy-paste tay |
-| **Ai sửa?** | Bạn (mỗi project customize riêng) | Hiếm khi sửa, là một phần của repo template |
-| **Ảnh hưởng khi sửa** | Thay đổi NGAY output mà command sinh ra | Không ảnh hưởng command, chỉ thay sample |
-| **Khi nào dùng?** | Mỗi project bootstrap → customize cho convention team | Khi muốn viết tay PTTK / cần xem mẫu chi tiết |
+BA có 2 cách để tạo RSD:
 
-**Workflow customize active template** — có 2 cách:
+**Cách A — Viết tay markdown** (nhanh, không cần Word):
 
-**Cách A — Sửa markdown trực tiếp** (dev quen markdown):
+1. Copy file `templates/rsd-template.md` thành `docs/rsd/<feature>-rsd.md`
+2. BA chỉnh sửa theo requirement thực tế
+3. Commit vào repo
+4. Dev chạy `/rsd-to-pttk docs/rsd/<feature>-rsd.md`
+
+**Cách B — Viết Word, convert markdown** (team có template Word sẵn):
+
+```
+.claude/output-templates/source/rsd.docx   ← BA sửa (Word)
+              ↓ /sync-rsd-template order-management
+docs/rsd/order-management-rsd.md           ← Auto-gen, chuẩn hóa
+```
+
+1. BA viết Word RSD theo template team
+2. Đặt file Word vào `.claude/output-templates/source/rsd.docx`
+3. Dev chạy `/sync-rsd-template <tên-feature>` để convert → `docs/rsd/<feature>-rsd.md`
+4. Dev chạy `/rsd-to-pttk docs/rsd/<feature>-rsd.md`
+
+**Lưu ý**: 
+- Nếu dùng **Cách B**, KHÔNG sửa `docs/rsd/<feature>-rsd.md` thủ công — sẽ bị ghi đè lần sync sau. Sửa Word rồi chạy lại `/sync-rsd-template`.
+- Nếu dùng **Cách A**, có thể sửa `docs/rsd/<feature>-rsd.md` tự do (không có automation).
+
+### 5.2 Customize active template PTTK — 2 cách
+
+**Cách A — Sửa markdown PTTK template trực tiếp** (dev quen markdown):
 
 1. Mở `.claude/output-templates/pttk.md`
 2. Thêm/bớt section, đổi cột bảng, đổi loại diagram theo team
