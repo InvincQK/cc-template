@@ -12,14 +12,21 @@ Khi làm việc với Claude Code mà không có quy trình, ta thường gặp 
 2. **Implement quá lớn trong một lượt** → khó review, khó debug, dễ context rotted.
 3. **Không trace được** từ requirement → design → task → code khi cần audit hoặc onboard người mới.
 
-Template này giải quyết bằng 3 slash command + 3 loại tài liệu chuẩn:
+Template này giải quyết bằng 5 slash command + 3 loại tài liệu chuẩn:
 
 | Tài liệu | Viết bởi | Phục vụ |
 |----------|----------|---------|
-| **RSD** (Requirement Spec) | Con người (BA/PO/Dev) | Mô tả "làm gì" nghiệp vụ |
+| **RSD** (Requirement Spec) | BA/PO viết Word → `/sync-rsd-template` convert | Mô tả "làm gì" nghiệp vụ |
 | **PTTK** (Phân tích Thiết kế) | `/rsd-to-pttk` | Mô tả "làm như thế nào" về kỹ thuật |
 | **Implementation Plan** | `/pttk-to-plan` | Chia thành task ~30-60' để code lần lượt |
 | Code thật | `/implement-task` | Implement + test + update plan |
+
+Command hỗ trợ convert template từ Word:
+
+| Command | Input | Output |
+|---------|-------|--------|
+| `/sync-rsd-template` | Word RSD (`.claude/output-templates/source/rsd.docx`) | `docs/rsd/<feature>-rsd.md` |
+| `/sync-pttk-template` | Word PTTK (`.claude/output-templates/source/pttk.docx`) | `.claude/output-templates/pttk.md` (active template) |
 
 ---
 
