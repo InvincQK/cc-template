@@ -1,0 +1,86 @@
+# ==============================
+# Build output
+# ==============================
+target/
+build/
+out/
+bin/
+dist/
+
+# Maven
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# Gradle
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+
+# ==============================
+# IDE & Editor
+# ==============================
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.code-workspace
+.settings/
+.project
+.classpath
+.factorypath
+nbproject/private/
+nbbuild/
+nbdist/
+.nb-gradle/
+
+# ==============================
+# OS
+# ==============================
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+ehthumbs.db
+
+# ==============================
+# Logs & temp
+# ==============================
+*.log
+*.tmp
+*.swp
+*.bak
+*~
+hs_err_pid*
+replay_pid*
+
+# ==============================
+# Secrets / environment
+# ==============================
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ==============================
+# Test & coverage
+# ==============================
+.jacoco/
+coverage/
+*.exec
+
+# ==============================
+# QUAN TRỌNG: KHÔNG ignore .claude/
+# Thư mục .claude/ chứa slash commands và settings dùng chung cho cả team.
+# Nếu cần ignore phần cá nhân, dùng .claude/settings.local.json (đã được Claude Code mặc định bỏ qua).
+# ==============================
+.claude/settings.local.json
