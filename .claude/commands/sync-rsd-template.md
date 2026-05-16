@@ -77,24 +77,52 @@ Nếu pandoc trả error → DỪNG, in stderr cho user.
 
 2. **Tiêu đề chính**: Đảm bảo dòng `# RSD: <Tên Feature>` ở đầu. Normalize heading level cho toàn file (section chính `##`, sub-section `###`).
 
-3. **Chuẩn hóa cấu trúc**: Kiểm tra các section quan trọng có mặt không. Reference `templates/rsd-template.md` để biết expected structure:
-   - **Thông tin chung** (Purpose, Scope, etc.)
-   - **Yêu cầu chức năng** (FR-001, FR-002, ...)
-   - **Yêu cầu phi chức năng**
-   - **Tiêu chí chấp nhận**
-   
-   Nếu Word thiếu section quan trọng → thêm section rỗng với note `<!-- TODO: BA fill in -->`.
+3. **Kiểm tra thông tin thiết yếu** (QUAN TRỌNG):
 
-4. **Loại bỏ artifact** pandoc hay sinh ra:
+   Reference `templates/rsd-template.md` để kiểm tra các section bắt buộc có đủ thông tin không:
+   
+   **Thông tin chung:**
+   - Tên feature rõ ràng
+   - Mục đích / Lý do (Why)
+   - Scope (in-scope, out-of-scope)
+   - Version & ngày tạo
+   
+   **Yêu cầu chức năng (FR-xxx):**
+   - Mỗi FR có mô tả đầy đủ (WHAT, WHO, khi nào)
+   - Mỗi FR có acceptance criteria rõ ràng
+   - Không bị mơ hồ (không là "implement something", phải cụ thể)
+   
+   **Yêu cầu phi chức năng (NFR):**
+   - Performance, security, integration requirements (nếu có)
+   
+   **RULE TUYỆT ĐỐI**: 
+   - **KHÔNG tự điền thông tin thiếu** bằng bừa. 
+   - Nếu phát hiện section quan trọng **thiếu dữ liệu cụ thể** (ví dụ FR mơ hồ, acceptance criteria không rõ, scope không đầy đủ) → **DỪNG và HỎI USER** cung cấp thêm thông tin.
+   - **KHÔNG thêm section rỗng** với note `<!-- TODO: BA fill in -->` — đó là tín hiệu thất bại, hãy hỏi user trước.
+   
+   **Checklist hỏi user nếu phát hiện thiếu:**
+   ```
+   ❌ FR-XXX mô tả mơ hồ?         → Hỏi: "FR-XXX cần làm rõ chi tiết gì?"
+   ❌ Acceptance criteria thiếu?   → Hỏi: "AC cho FR-XXX là gì?"
+   ❌ Scope không rõ?              → Hỏi: "Cần clarify phạm vi nào?"
+   ❌ NFR thiếu?                   → Hỏi: "Có performance/security requirement nào không?"
+   ❌ Actor không rõ?              → Hỏi: "Ai là user của feature này?"
+   ```
+
+4. **Chuẩn hóa cấu trúc**: Sau khi kiểm tra thông tin (Bước 3), nếu đủ chi tiết, chuẩn hóa format:
+   - Normalize markdown syntax (heading level, list format)
+   - Giữ nguyên nội dung từ Word, chỉ format lại
+
+5. **Loại bỏ artifact** pandoc hay sinh ra:
    - `{.class-name}` attribute cuối heading → bỏ.
    - Image link `![](media/image1.png)` → thay bằng `<!-- Diagram: mô tả ngắn -->`.
    - Footnote rỗng → bỏ.
    - Multiple blank lines → gộp thành 1.
    - Table có empty cell → check xem có intentional không, nếu không → clean up.
 
-5. **Giữ ngôn ngữ**: Nếu Word viết tiếng Việt → giữ tiếng Việt, không dịch.
+6. **Giữ ngôn ngữ**: Nếu Word viết tiếng Việt → giữ tiếng Việt, không dịch.
 
-6. **Comment hướng dẫn** (optional): Trước các section quan trọng, có thể thêm HTML comment ghi rule. Ví dụ:
+7. **Comment hướng dẫn** (optional): Trước các section quan trọng, có thể thêm HTML comment ghi rule. Ví dụ:
    ```html
    <!--
    QUAN TRỌNG: Mỗi FR PHẢI có:
@@ -135,6 +163,10 @@ Next: chạy /rsd-to-pttk docs/rsd/<feature-name>-rsd.md để gen PTTK.
 
 - **Word file là source of truth**. KHÔNG sửa `docs/rsd/<feature-name>-rsd.md` thủ công — sẽ bị ghi đè khi sync.
 - **Idempotent**: chạy lệnh nhiều lần phải cho cùng kết quả (cùng input → cùng output).
-- **Không tự thêm FR/NFR mới** không có trong Word. Nếu thấy thiếu section, báo cáo cho user, không tự sinh.
+- **🚫 KHÔNG tự điền thông tin thiếu**. Nếu phát hiện thông tin RSD chưa đủ cụ thể (FR mơ hồ, AC thiếu, scope không rõ, NFR không đầy đủ), **DỪNG ngay và HỎI USER** cung cấp chi tiết. KHÔNG thêm section rỗng hay tự đoán.
+  - Ví dụ: Nếu FR-001 chỉ ghi "implement feature" → hỏi user "FR-001 cần làm rõ chi tiết gì?"
+  - Nếu AC thiếu → hỏi "AC cho FR-XXX là gì?"
+- **Không tự thêm FR/NFR mới** không có trong Word. Chỉ refine / chuẩn hóa cái có sẵn.
 - **Giữ cấu trúc**: RSD là requirement, không thiết kế. Giữ nguyên structure từ Word, chỉ chuẩn hóa format.
 - **Lỗi rõ ràng**: nếu pandoc lỗi hoặc file không parse được, báo cụ thể lỗi gì để user fix Word file.
+- **Yêu cầu BA cung cấp, không guess**: RSD là yêu cầu từ business. Nếu thiếu chi tiết → đó là lỗi của BA, không phải lỗi của command.
