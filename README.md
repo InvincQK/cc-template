@@ -12,20 +12,21 @@ Khi làm việc với Claude Code mà không có quy trình, ta thường gặp 
 2. **Implement quá lớn trong một lượt** → khó review, khó debug, dễ context rotted.
 3. **Không trace được** từ requirement → design → task → code khi cần audit hoặc onboard người mới.
 
-Template này giải quyết bằng 5 slash command + 3 loại tài liệu chuẩn:
+Template này giải quyết bằng 6 slash command + 3 loại tài liệu chuẩn:
 
 | Tài liệu | Viết bởi | Phục vụ |
 |----------|----------|---------|
-| **RSD** (Requirement Spec) | BA/PO viết Word → `/sync-rsd-template` convert | Mô tả "làm gì" nghiệp vụ |
+| **RSD** (Requirement Spec) | BA/PO viết Word/MD → `/sync-rsd-template` hoặc `/import-rsd` | Mô tả "làm gì" nghiệp vụ |
 | **PTTK** (Phân tích Thiết kế) | `/rsd-to-pttk` | Mô tả "làm như thế nào" về kỹ thuật |
 | **Implementation Plan** | `/pttk-to-plan` | Chia thành task ~30-60' để code lần lượt |
 | Code thật | `/implement-task` | Implement + test + update plan |
 
-Command hỗ trợ convert template từ Word:
+Command hỗ trợ import / convert RSD và PTTK:
 
 | Command | Input | Output |
 |---------|-------|--------|
 | `/sync-rsd-template` | Word RSD (`.claude/output-templates/source/rsd.docx`) | `docs/rsd/<feature>-rsd.md` |
+| `/import-rsd` | Markdown RSD (user viết sẵn, bất kỳ path) | `docs/rsd/<feature>-rsd.md` (đã validate + TODO markers) |
 | `/sync-pttk-template` | Word PTTK (`.claude/output-templates/source/pttk.docx`) | `.claude/output-templates/pttk.md` (active template) |
 
 ---
@@ -68,17 +69,19 @@ Sau khi bootstrap, làm 2 việc ngay:
 
 ## 4. Workflow tổng quan
 
-**Path A — Từ Word RSD (khuyến khích):**
+**Path A — Từ Word RSD:**
 ```
-.docx (Word)          rsd.md              pttk.md             plan.md
-    │                    │                   │                   │
-    ▼ /sync-rsd-template ▼ /rsd-to-pttk     ▼ /pttk-to-plan    ▼ /implement-task
-.docx ──────────► .md ──────────► .md ──────────► .md ──────────► Code+
+.docx (Word) → /sync-rsd-template → docs/rsd/<feature>-rsd.md → /rsd-to-pttk → ...
 ```
 
-**Path B — Viết tay RSD (fallback):**
+**Path B — Từ Markdown user viết sẵn (Notion export, Obsidian, viết tay...):**
 ```
-Write manually ──► docs/rsd/<feature>-rsd.md ──► ... (từ /rsd-to-pttk trở đi)
+<path>/<file>.md → /import-rsd → docs/rsd/<feature>-rsd.md (validate + TODO) → /rsd-to-pttk → ...
+```
+
+**Path C — Viết tay trực tiếp vào workflow (fallback):**
+```
+Copy templates/rsd-template.md → docs/rsd/<feature>-rsd.md → BA fill → /rsd-to-pttk → ...
 ```
 
 Ví dụ thực tế cho feature "quản lý đơn hàng" dùng Word:
@@ -103,8 +106,9 @@ Ví dụ thực tế cho feature "quản lý đơn hàng" dùng Word:
 ```
 .
 ├── .claude/
-│   ├── commands/               # 5 slash command chính
+│   ├── commands/               # 6 slash command chính
 │   │   ├── sync-rsd-template.md
+│   │   ├── import-rsd.md
 │   │   ├── rsd-to-pttk.md
 │   │   ├── pttk-to-plan.md
 │   │   ├── implement-task.md
@@ -131,8 +135,9 @@ Ví dụ thực tế cho feature "quản lý đơn hàng" dùng Word:
 
 Giải thích từng thư mục:
 
-- **`.claude/commands/`**: 5 slash command. Commit vào repo để cả team dùng chung.
+- **`.claude/commands/`**: 6 slash command. Commit vào repo để cả team dùng chung.
   - `sync-rsd-template.md`: convert Word RSD → markdown RSD
+  - `import-rsd.md`: validate + import RSD markdown user viết sẵn (Notion, Obsidian, viết tay)
   - `rsd-to-pttk.md`: phân tích RSD → PTTK
   - `pttk-to-plan.md`: từ PTTK → plan tasks
   - `implement-task.md`: implement từng task
@@ -149,18 +154,11 @@ Giải thích từng thư mục:
 - **`templates/`**: starter cho file viết tay. Chỉ chứa `rsd-template.md` — guide để BA viết RSD tay nếu không dùng Word.
 - **`.claude/settings.json`**: permissions allow/deny/ask. Phần cá nhân để ở `.claude/settings.local.json` (đã ignore mặc định).
 
-### 5.1 RSD workflow — Tay viết vs. Word convert
+### 5.1 RSD workflow — 3 cách
 
-BA có 2 cách để tạo RSD:
+BA có 3 cách để đưa RSD vào workflow:
 
-**Cách A — Viết tay markdown** (nhanh, không cần Word):
-
-1. Copy file `templates/rsd-template.md` thành `docs/rsd/<feature>-rsd.md`
-2. BA chỉnh sửa theo requirement thực tế
-3. Commit vào repo
-4. Dev chạy `/rsd-to-pttk docs/rsd/<feature>-rsd.md`
-
-**Cách B — Viết Word, convert markdown** (team có template Word sẵn):
+**Cách A — Word convert** (team có template Word sẵn):
 
 ```
 .claude/output-templates/source/rsd.docx   ← BA sửa (Word)
@@ -170,12 +168,44 @@ docs/rsd/order-management-rsd.md           ← Auto-gen, chuẩn hóa
 
 1. BA viết Word RSD theo template team
 2. Đặt file Word vào `.claude/output-templates/source/rsd.docx`
-3. Dev chạy `/sync-rsd-template <tên-feature>` để convert → `docs/rsd/<feature>-rsd.md`
+3. Dev chạy `/sync-rsd-template <tên-feature>`
 4. Dev chạy `/rsd-to-pttk docs/rsd/<feature>-rsd.md`
 
+**Cách B — Import markdown user viết sẵn** (export từ Notion, Obsidian, hoặc viết tay):
+
+```
+<bất-kỳ-path>/<file>.md     ← User viết sẵn
+        ↓ /import-rsd <path> <feature>
+docs/rsd/<feature>-rsd.md   ← Validate + TODO markers (nếu thiếu)
+```
+
+1. User chuẩn bị file `.md` chứa RSD (path bất kỳ)
+2. Dev chạy `/import-rsd <path-to-md> <feature-name>`
+3. Command rà soát đầy đủ thông tin theo yêu cầu workflow:
+   - Nếu **đủ** → copy thẳng vào `docs/rsd/<feature>-rsd.md`, sẵn sàng dùng
+   - Nếu **thiếu** → vẫn copy nhưng chèn TODO markers, BA bổ sung trực tiếp
+4. Dev chạy lại `/import-rsd` để re-validate sau khi BA fill TODO
+5. Dev chạy `/rsd-to-pttk docs/rsd/<feature>-rsd.md`
+
+**Cách C — Viết tay trực tiếp** (nhanh, đơn giản):
+
+1. Copy file `templates/rsd-template.md` thành `docs/rsd/<feature>-rsd.md`
+2. BA chỉnh sửa theo requirement thực tế
+3. Commit vào repo
+4. Dev chạy `/rsd-to-pttk docs/rsd/<feature>-rsd.md`
+
+**So sánh nhanh:**
+
+| Cách | Khi dùng | Validation |
+|------|----------|------------|
+| A — Word | Team đã quen Word, có template chuẩn | Auto rà soát + hỏi user nếu thiếu |
+| B — Import MD | User viết ngoài (Notion, Obsidian, v.v.) | Auto rà soát + chèn TODO marker |
+| C — Viết tay | Dev tự viết theo `rsd-template.md` | Không tự động (manual review) |
+
 **Lưu ý**: 
-- Nếu dùng **Cách B**, KHÔNG sửa `docs/rsd/<feature>-rsd.md` thủ công — sẽ bị ghi đè lần sync sau. Sửa Word rồi chạy lại `/sync-rsd-template`.
-- Nếu dùng **Cách A**, có thể sửa `docs/rsd/<feature>-rsd.md` tự do (không có automation).
+- Cách **A**: KHÔNG sửa `docs/rsd/<feature>-rsd.md` thủ công — sẽ bị ghi đè lần sync sau.
+- Cách **B**: Có thể sửa trực tiếp `docs/rsd/<feature>-rsd.md` để fill TODO. Re-run `/import-rsd` để verify.
+- Cách **C**: Sửa file tự do (không có automation).
 
 ### 5.2 Customize active template PTTK — 2 cách
 
